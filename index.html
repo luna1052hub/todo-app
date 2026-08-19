@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List with Custom Theme & Font Settings</title>
+  <!-- canvas-confetti 라이브러리 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- 구글 폰트 추가 (고딕, 둥근고딕, 명조, 손글씨 개구체) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* CSS 변수를 이용한 테마 및 폰트 관리 */
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --subtext-color: #aaaaaa;
+      --border-color: #eeeeee;
+      --input-border: #dddddd;
+      --primary-color: #4a90e2;
+      --primary-hover: #357abd;
+      --delete-btn: #ff4d4f;
+      --item-hover: #f9f9f9;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+      --drag-handle: #888888;
+      --dragging-bg: #eef5fc;
+      --font-family: 'Noto Sans KR', sans-serif; /* 기본 폰트 설정 */
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --subtext-color: #777777;
+      --border-color: #2c2c2c;
+      --input-border: #3c3c3c;
+      --primary-color: #5c9ce6;
+      --primary-hover: #4a80c2;
+      --delete-btn: #ff6b6b;
+      --item-hover: #262626;
+      --shadow-color: rgba(0, 0, 0, 0.5);
+      --drag-handle: #aaaaaa;
+      --dragging-bg: #2a3848;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .todo-container {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 440px;
+      padding: 28px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px var(--shadow-color);
+      position: relative;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: 1px solid var(--input-border);
+      color: var(--text-color);
+      border-radius: 20px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: inherit;
+    }
+
+    .icon-btn:hover {
+      background-color: var(--item-hover);
+    }
+
+    /* 설정 드롭다운 패널 */
+    .settings-panel {
+      display: none;
+      background-color: var(--item-hover);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      flex-direction: column;
+      gap: 12px;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .settings-panel.active {
+      display: flex;
+    }
+
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .setting-item label {
+      font-weight: 600;
+    }
+
+    .setting-item input[type="color"] {
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      background: none;
+    }
+
+    .setting-item select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      outline: none;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .input-group input {
+      flex: 1;
+      padding: 12px 14px;
+      background-color: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .input-group input:focus {
+      border-color: var(--primary-color);
+    }
+
+    .input-group button {
+      padding: 12px 18px;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+
+    .input-group button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .congrats-message {
+      display: none;
+      text-align: center;
+      padding: 12px;
+      margin-bottom: 16px;
+      background-color: rgba(74, 144, 226, 0.12);
+      border-radius: 8px;
+      color: var(--primary-color);
+      font-weight: bold;
+      font-size: 14px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .todo-list {
+      list-style: none;
+    }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-color);
+      border-radius: 6px;
+      gap: 8px;
+      background-color: var(--card-bg);
+    }
+
+    .todo-item:hover {
+      background-color: var(--item-hover);
+    }
+
+    .todo-item:last-child {
+      border-bottom: none;
+    }
+
+    .todo-item.dragging {
+      opacity: 0.5;
+      background-color: var(--dragging-bg);
+    }
+
+    .drag-handle {
+      cursor: grab;
+      color: var(--drag-handle);
+      font-size: 14px;
+      user-select: none;
+      padding: 2px 4px;
+    }
+
+    .drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .todo-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--primary-color);
+    }
+
+    .todo-text {
+      font-size: 15px;
+      color: var(--text-color);
+      flex: 1;
+      word-break: break-all;
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+      color: var(--subtext-color);
+    }
+
+    .order-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .arrow-btn {
+      background: none;
+      border: none;
+      color: var(--text-color);
+      font-size: 10px;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 3px;
+      line-height: 1;
+      opacity: 0.6;
+    }
+
+    .arrow-btn:hover {
+      opacity: 1;
+      background-color: var(--input-border);
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: var(--delete-btn);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      opacity: 0.7;
+    }
+
+    .delete-btn:hover {
+      opacity: 1;
+      background-color: rgba(255, 77, 79, 0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="todo-container">
+    <div class="header">
+      <h1>📝 Todo List</h1>
+      <div class="header-actions">
+        <!-- 설정 버튼 -->
+        <button class="icon-btn" id="settingsToggleBtn" title="설정">
+          ⚙️ <span>설정</span>
+        </button>
+        <!-- 다크 모드 토글 -->
+        <button class="icon-btn" id="themeToggleBtn">
+          <span id="themeIcon">🌙</span> <span id="themeText">다크</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 설정 드롭다운 패널 -->
+    <div class="settings-panel" id="settingsPanel">
+      <div class="setting-item">
+        <label for="bgColorPicker">🎨 배경색 지정</label>
+        <input type="color" id="bgColorPicker" value="#f4f6f8" />
+      </div>
+      <div class="setting-item">
+        <label for="fontSelect">🔤 폰트 선택</label>
+        <select id="fontSelect">
+          <option value="'Noto Sans KR', sans-serif">노토 산스 (기본 고딕)</option>
+          <option value="'Nanum Gothic', sans-serif">나눔고딕</option>
+          <option value="'Nanum Myeongjo', serif">나눔명조</option>
+          <option value="'Gaegu', cursive">개구체 (손글씨)</option>
+          <option value="'Segoe UI', sans-serif">Segoe UI</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="input-group">
+      <input type="text" id="todoInput" placeholder="할 일을 입력하세요..." />
+      <button id="addBtn">추가</button>
+    </div>
+
+    <div class="congrats-message" id="congratsMessage">
+      🎉 축하합니다! 모든 할 일을 완료했습니다! 🎉
+    </div>
+
+    <ul class="todo-list" id="todoList"></ul>
+  </div>
+
+  <script>
+    const todoInput = document.getElementById('todoInput');
+    const addBtn = document.getElementById('addBtn');
+    const todoList = document.getElementById('todoList');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    const congratsMessage = document.getElementById('congratsMessage');
+
+    // 설정 관련 요소
+    const settingsToggleBtn = document.getElementById('settingsToggleBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const bgColorPicker = document.getElementById('bgColorPicker');
+    const fontSelect = document.getElementById('fontSelect');
+
+    // 1. 설정 패널 토글
+    settingsToggleBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('active');
+    });
+
+    // 2. 배경색 직접 지정 기능 (Color Picker)
+    bgColorPicker.addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--bg-color', e.target.value);
+    });
+
+    // 3. 폰트 변경 기능
+    fontSelect.addEventListener('change', (e) => {
+      document.documentElement.style.setProperty('--font-family', e.target.value);
+    });
+
+    // 4. 다크 모드 토글
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      if (currentTheme === 'dark') {
+        document.documentElement.removeAttribute('data-theme');
+        themeIcon.textContent = '🌙';
+        themeText.textContent = '다크';
+        bgColorPicker.value = '#f4f6f8';
+        document.documentElement.style.removeProperty('--bg-color');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = '라이트';
+        bgColorPicker.value = '#121212';
+        document.documentElement.style.removeProperty('--bg-color');
+      }
+    });
+
+    // 5. 폭죽 효과
+    function triggerFireworks() {
+      const duration = 2.5 * 1000;
+      const animationEnd = Date.now() + duration;
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+
+        const particleCount = 50 * (timeLeft / duration);
+        confetti({
+          particleCount: particleCount,
+          spread: 70,
+          origin: { x: 0.1, y: 0.8 },
+          colors: ['#ff4d4f', '#4a90e2', '#52c41a', '#faad14', '#722ed1']
+        });
+        confetti({
+          particleCount: particleCount,
+          spread: 70,
+          origin: { x: 0.9, y: 0.8 },
+          colors: ['#ff4d4f', '#4a90e2', '#52c41a', '#faad14', '#722ed1']
+        });
+      }, 250);
+    }
+
+    // 6. 모든 항목 완료 검사
+    function checkAllCompleted() {
+      const items = todoList.querySelectorAll('.todo-item');
+      if (items.length === 0) {
+        congratsMessage.style.display = 'none';
+        return;
+      }
+
+      const completedItems = todoList.querySelectorAll('.todo-item.completed');
+      if (items.length === completedItems.length) {
+        congratsMessage.style.display = 'block';
+        triggerFireworks();
+      } else {
+        congratsMessage.style.display = 'none';
+      }
+    }
+
+    // 7. HTML5 Drag and Drop 구현
+    todoList.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const draggingItem = document.querySelector('.dragging');
+      if (!draggingItem) return;
+
+      const siblings = [...todoList.querySelectorAll('.todo-item:not(.dragging)')];
+      const nextSibling = siblings.find(sibling => {
+        return e.clientY <= sibling.getBoundingClientRect().top + sibling.offsetHeight / 2;
+      });
+
+      todoList.insertBefore(draggingItem, nextSibling);
+    });
+
+    // 8. 할 일 추가
+    function addTodo() {
+      const text = todoInput.value.trim();
+      if (text === '') {
+        alert('할 일을 입력해 주세요!');
+        return;
+      }
+
+      const li = document.createElement('li');
+      li.className = 'todo-item';
+      li.draggable = true;
+
+      li.addEventListener('dragstart', () => {
+        li.classList.add('dragging');
+      });
+
+      li.addEventListener('dragend', () => {
+        li.classList.remove('dragging');
+      });
+
+      const dragHandle = document.createElement('span');
+      dragHandle.className = 'drag-handle';
+      dragHandle.innerHTML = '⋮⋮';
+      dragHandle.title = '드래그하여 순서 변경';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.addEventListener('change', function () {
+        li.classList.toggle('completed', checkbox.checked);
+        checkAllCompleted();
+      });
+
+      const span = document.createElement('span');
+      span.className = 'todo-text';
+      span.textContent = text;
+
+      const orderBtns = document.createElement('div');
+      orderBtns.className = 'order-btns';
+
+      const upBtn = document.createElement('button');
+      upBtn.className = 'arrow-btn';
+      upBtn.innerHTML = '▲';
+      upBtn.title = '위로 이동';
+      upBtn.addEventListener('click', () => {
+        const prevLi = li.previousElementSibling;
+        if (prevLi) {
+          todoList.insertBefore(li, prevLi);
+        }
+      });
+
+      const downBtn = document.createElement('button');
+      downBtn.className = 'arrow-btn';
+      downBtn.innerHTML = '▼';
+      downBtn.title = '아래로 이동';
+      downBtn.addEventListener('click', () => {
+        const nextLi = li.nextElementSibling;
+        if (nextLi) {
+          todoList.insertBefore(nextLi, li);
+        }
+      });
+
+      orderBtns.appendChild(upBtn);
+      orderBtns.appendChild(downBtn);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.innerHTML = '🗑️';
+      deleteBtn.title = '삭제';
+      deleteBtn.addEventListener('click', function () {
+        li.remove();
+        checkAllCompleted();
+      });
+
+      li.appendChild(dragHandle);
+      li.appendChild(checkbox);
+      li.appendChild(span);
+      li.appendChild(orderBtns);
+      li.appendChild(deleteBtn);
+
+      todoList.appendChild(li);
+
+      todoInput.value = '';
+      todoInput.focus();
+
+      checkAllCompleted();
+    }
+
+    addBtn.addEventListener('click', addTodo);
+    todoInput.addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        addTodo();
+      }
+    });
+  </script>
+
+</body>
+</html>
