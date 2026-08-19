@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Rabbit Run Todo (Track Version)</title>
+  <title>Rabbit Run Todo List</title>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
-    /* CSS 변수를 이용한 테마 및 폰트 관리 */
     :root {
       --bg-color: #f4f6f8;
       --card-bg: #ffffff;
@@ -27,10 +27,8 @@
       --shadow-color: rgba(0, 0, 0, 0.1);
       --drag-handle: #888888;
       --dragging-bg: #eef5fc;
-      --track-bg: #e0e0e0; /* 트랙 배경색 */
-      --rabbit-emoji: '🐇'; /* 토끼 캐릭터 */
-      --goal-emoji: '🏁'; /* 골인 지점 */
-      --font-family: 'Noto Sans KR', sans-serif; /* 기본 폰트 설정 */
+      --track-bg: #e0e0e0;
+      --font-family: 'Noto Sans KR', sans-serif;
     }
 
     [data-theme="dark"] {
@@ -78,7 +76,7 @@
       position: relative;
     }
 
-    /* 🏎️ 달리기 트랙 시스템 그래픽 */
+    /* 달리기 트랙 디자인 */
     .track-section {
       margin-bottom: 24px;
       padding: 16px;
@@ -98,26 +96,26 @@
 
     .track-container {
       position: relative;
-      height: 30px;
+      height: 36px;
       background-color: var(--track-bg);
-      border-radius: 15px;
+      border-radius: 18px;
       overflow: hidden;
       display: flex;
       align-items: center;
-      padding: 0 5px;
+      padding: 0 10px;
     }
 
     .rabbit-character {
       position: absolute;
-      left: 0%; /* 실시간 완료%에 따라 0% ~ 90% 변경 */
-      font-size: 20px;
-      transition: left 0.4s ease-out; /* 부드럽게 뛰어가는 효과 */
+      left: 0%;
+      font-size: 22px;
+      transition: left 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       z-index: 2;
     }
 
     .goal-post {
       position: absolute;
-      right: 5px;
+      right: 10px;
       font-size: 20px;
       z-index: 1;
     }
@@ -127,39 +125,10 @@
       left: 0;
       top: 0;
       height: 100%;
-      width: 0%; /* 완료% 채우기 */
-      background-color: rgba(74, 144, 226, 0.2); /* 은은한 트랙 채우기 효과 */
+      width: 0%;
+      background-color: rgba(74, 144, 226, 0.3);
       transition: width 0.4s ease-out;
-      border-radius: 15px;
-    }
-
-    .congrats-message {
-      display: none;
-      text-align: center;
-      padding: 12px;
-      margin-bottom: 16px;
-      background-color: rgba(74, 144, 226, 0.12);
-      border-radius: 8px;
-      color: var(--primary-color);
-      font-weight: bold;
-      font-size: 14px;
-      animation: fadeIn 0.4s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* 트랙 완주 성공 연출 (CSS) */
-    .track-section.finished {
-      border-color: var(--primary-color);
-      animation: trackGlow 1.5s infinite alternate;
-    }
-
-    @keyframes trackGlow {
-      from { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
-      to { box-shadow: 0 0 20px rgba(74, 144, 226, 0.6); }
+      border-radius: 18px;
     }
 
     .header {
@@ -198,7 +167,6 @@
       background-color: var(--item-hover);
     }
 
-    /* 설정 드롭다운 패널 */
     .settings-panel {
       display: none;
       background-color: var(--item-hover);
@@ -208,7 +176,7 @@
       margin-bottom: 20px;
       flex-direction: column;
       gap: 12px;
-      animation: fadeIn settingsPanelFade 0.3s ease-out;
+      animation: fadeIn 0.3s ease-out;
     }
 
     .settings-panel.active {
@@ -225,175 +193,3 @@
     .setting-item label {
       font-weight: 600;
     }
-
-    .setting-item input[type="color"] {
-      border: none;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      cursor: pointer;
-      background: none;
-    }
-
-    .setting-item select {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--input-border);
-      background-color: var(--card-bg);
-      color: var(--text-color);
-      outline: none;
-      font-family: inherit;
-      font-size: 13px;
-    }
-
-    .input-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .input-group input {
-      flex: 1;
-      padding: 12px 14px;
-      background-color: var(--card-bg);
-      color: var(--text-color);
-      border: 1px solid var(--input-border);
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-      font-family: inherit;
-    }
-
-    .input-group input:focus {
-      border-color: var(--primary-color);
-    }
-
-    .input-group button {
-      padding: 12px 18px;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      white-space: nowrap;
-      font-family: inherit;
-    }
-
-    .input-group button:hover {
-      background-color: var(--primary-hover);
-    }
-
-    .todo-list {
-      list-style: none;
-    }
-
-    .todo-item {
-      display: flex;
-      align-items: center;
-      padding: 10px 8px;
-      border-bottom: 1px solid var(--border-color);
-      border-radius: 6px;
-      gap: 8px;
-      background-color: var(--card-bg);
-    }
-
-    .todo-item:hover {
-      background-color: var(--item-hover);
-    }
-
-    .todo-item:last-child {
-      border-bottom: none;
-    }
-
-    .todo-item.dragging {
-      opacity: 0.5;
-      background-color: var(--dragging-bg);
-    }
-
-    .drag-handle {
-      cursor: grab;
-      color: var(--drag-handle);
-      font-size: 14px;
-      user-select: none;
-      padding: 2px 4px;
-    }
-
-    .drag-handle:active {
-      cursor: grabbing;
-    }
-
-    .todo-item input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-      accent-color: var(--primary-color);
-    }
-
-    .todo-text {
-      font-size: 15px;
-      color: var(--text-color);
-      flex: 1;
-      word-break: break-all;
-    }
-
-    .todo-item.completed .todo-text {
-      text-decoration: line-through;
-      color: var(--subtext-color);
-    }
-
-    .order-btns {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .arrow-btn {
-      background: none;
-      border: none;
-      color: var(--text-color);
-      font-size: 10px;
-      cursor: pointer;
-      padding: 2px 4px;
-      border-radius: 3px;
-      line-height: 1;
-      opacity: 0.6;
-    }
-
-    .arrow-btn:hover {
-      opacity: 1;
-      background-color: var(--input-border);
-    }
-
-    .delete-btn {
-      background: none;
-      border: none;
-      color: var(--delete-btn);
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 4px;
-      opacity: 0.7;
-    }
-
-    .delete-btn:hover {
-      opacity: 1;
-      background-color: rgba(255, 77, 79, 0.1);
-    }
-  </style>
-</head>
-<body>
-
-  <div class="todo-container">
-    <div class="track-section" id="trackSection">
-      <div class="track-header">
-        <span>🏃 Rabbit Run (할 일 달성률)</span>
-        <span id="progressPercent">0%</span>
-      </div>
-      <div class="track-container">
-        <div class="progress-bar-fill" id="progressBarFill"></div>
-        <div class="rabbit-character" id="rabbitCharacter">var(--rabbit-emoji)</div>
-        <div class="goal-post">var(--goal-emoji)성취감을 눈으로 바로 보여주는 트랙과 캐릭터 시스템은 투두리스트를 훨씬 재미있게 만들어 줄 핵심 아이디어입니다! 이 업그레이드를 통해 투두리스트를 "성공을 향해 달려가는 게임"처럼 느끼게 만들 수 있습니다.
-
-**앞으로 또 구현하고 싶은 기능이나 연출이 생기면 언제든 말씀해 주세요. 나만의 완벽한 앱으로 만들어 드릴게요! 😊**
