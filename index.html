@@ -2,14 +2,15 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Todo List with Custom Theme & Font Settings</title>
-  <!-- canvas-confetti 라이브러리 CDN -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rabbit Run Todo (Track Version)</title>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- 구글 폰트 추가 (고딕, 둥근고딕, 명조, 손글씨 개구체) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <style>
     /* CSS 변수를 이용한 테마 및 폰트 관리 */
     :root {
@@ -26,6 +27,9 @@
       --shadow-color: rgba(0, 0, 0, 0.1);
       --drag-handle: #888888;
       --dragging-bg: #eef5fc;
+      --track-bg: #e0e0e0; /* 트랙 배경색 */
+      --rabbit-emoji: '🐇'; /* 토끼 캐릭터 */
+      --goal-emoji: '🏁'; /* 골인 지점 */
       --font-family: 'Noto Sans KR', sans-serif; /* 기본 폰트 설정 */
     }
 
@@ -43,6 +47,7 @@
       --shadow-color: rgba(0, 0, 0, 0.5);
       --drag-handle: #aaaaaa;
       --dragging-bg: #2a3848;
+      --track-bg: #3c3c3c;
     }
 
     * {
@@ -73,6 +78,90 @@
       position: relative;
     }
 
+    /* 🏎️ 달리기 트랙 시스템 그래픽 */
+    .track-section {
+      margin-bottom: 24px;
+      padding: 16px;
+      background-color: var(--item-hover);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .track-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--subtext-color);
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .track-container {
+      position: relative;
+      height: 30px;
+      background-color: var(--track-bg);
+      border-radius: 15px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      padding: 0 5px;
+    }
+
+    .rabbit-character {
+      position: absolute;
+      left: 0%; /* 실시간 완료%에 따라 0% ~ 90% 변경 */
+      font-size: 20px;
+      transition: left 0.4s ease-out; /* 부드럽게 뛰어가는 효과 */
+      z-index: 2;
+    }
+
+    .goal-post {
+      position: absolute;
+      right: 5px;
+      font-size: 20px;
+      z-index: 1;
+    }
+
+    .progress-bar-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0%; /* 완료% 채우기 */
+      background-color: rgba(74, 144, 226, 0.2); /* 은은한 트랙 채우기 효과 */
+      transition: width 0.4s ease-out;
+      border-radius: 15px;
+    }
+
+    .congrats-message {
+      display: none;
+      text-align: center;
+      padding: 12px;
+      margin-bottom: 16px;
+      background-color: rgba(74, 144, 226, 0.12);
+      border-radius: 8px;
+      color: var(--primary-color);
+      font-weight: bold;
+      font-size: 14px;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 트랙 완주 성공 연출 (CSS) */
+    .track-section.finished {
+      border-color: var(--primary-color);
+      animation: trackGlow 1.5s infinite alternate;
+    }
+
+    @keyframes trackGlow {
+      from { box-shadow: 0 0 5px rgba(74, 144, 226, 0.3); }
+      to { box-shadow: 0 0 20px rgba(74, 144, 226, 0.6); }
+    }
+
     .header {
       display: flex;
       justify-content: space-between;
@@ -81,7 +170,7 @@
     }
 
     h1 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
     }
 
@@ -96,7 +185,7 @@
       color: var(--text-color);
       border-radius: 20px;
       padding: 6px 10px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -119,7 +208,7 @@
       margin-bottom: 20px;
       flex-direction: column;
       gap: 12px;
-      animation: fadeIn 0.3s ease-out;
+      animation: fadeIn settingsPanelFade 0.3s ease-out;
     }
 
     .settings-panel.active {
@@ -194,24 +283,6 @@
 
     .input-group button:hover {
       background-color: var(--primary-hover);
-    }
-
-    .congrats-message {
-      display: none;
-      text-align: center;
-      padding: 12px;
-      margin-bottom: 16px;
-      background-color: rgba(74, 144, 226, 0.12);
-      border-radius: 8px;
-      color: var(--primary-color);
-      font-weight: bold;
-      font-size: 14px;
-      animation: fadeIn 0.4s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     .todo-list {
@@ -315,248 +386,14 @@
 <body>
 
   <div class="todo-container">
-    <div class="header">
-      <h1>📝 Todo List</h1>
-      <div class="header-actions">
-        <!-- 설정 버튼 -->
-        <button class="icon-btn" id="settingsToggleBtn" title="설정">
-          ⚙️ <span>설정</span>
-        </button>
-        <!-- 다크 모드 토글 -->
-        <button class="icon-btn" id="themeToggleBtn">
-          <span id="themeIcon">🌙</span> <span id="themeText">다크</span>
-        </button>
+    <div class="track-section" id="trackSection">
+      <div class="track-header">
+        <span>🏃 Rabbit Run (할 일 달성률)</span>
+        <span id="progressPercent">0%</span>
       </div>
-    </div>
+      <div class="track-container">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+        <div class="rabbit-character" id="rabbitCharacter">var(--rabbit-emoji)</div>
+        <div class="goal-post">var(--goal-emoji)성취감을 눈으로 바로 보여주는 트랙과 캐릭터 시스템은 투두리스트를 훨씬 재미있게 만들어 줄 핵심 아이디어입니다! 이 업그레이드를 통해 투두리스트를 "성공을 향해 달려가는 게임"처럼 느끼게 만들 수 있습니다.
 
-    <!-- 설정 드롭다운 패널 -->
-    <div class="settings-panel" id="settingsPanel">
-      <div class="setting-item">
-        <label for="bgColorPicker">🎨 배경색 지정</label>
-        <input type="color" id="bgColorPicker" value="#f4f6f8" />
-      </div>
-      <div class="setting-item">
-        <label for="fontSelect">🔤 폰트 선택</label>
-        <select id="fontSelect">
-          <option value="'Noto Sans KR', sans-serif">노토 산스 (기본 고딕)</option>
-          <option value="'Nanum Gothic', sans-serif">나눔고딕</option>
-          <option value="'Nanum Myeongjo', serif">나눔명조</option>
-          <option value="'Gaegu', cursive">개구체 (손글씨)</option>
-          <option value="'Segoe UI', sans-serif">Segoe UI</option>
-        </select>
-      </div>
-    </div>
-    
-    <div class="input-group">
-      <input type="text" id="todoInput" placeholder="할 일을 입력하세요..." />
-      <button id="addBtn">추가</button>
-    </div>
-
-    <div class="congrats-message" id="congratsMessage">
-      🎉 축하합니다! 모든 할 일을 완료했습니다! 🎉
-    </div>
-
-    <ul class="todo-list" id="todoList"></ul>
-  </div>
-
-  <script>
-    const todoInput = document.getElementById('todoInput');
-    const addBtn = document.getElementById('addBtn');
-    const todoList = document.getElementById('todoList');
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    const themeIcon = document.getElementById('themeIcon');
-    const themeText = document.getElementById('themeText');
-    const congratsMessage = document.getElementById('congratsMessage');
-
-    // 설정 관련 요소
-    const settingsToggleBtn = document.getElementById('settingsToggleBtn');
-    const settingsPanel = document.getElementById('settingsPanel');
-    const bgColorPicker = document.getElementById('bgColorPicker');
-    const fontSelect = document.getElementById('fontSelect');
-
-    // 1. 설정 패널 토글
-    settingsToggleBtn.addEventListener('click', () => {
-      settingsPanel.classList.toggle('active');
-    });
-
-    // 2. 배경색 직접 지정 기능 (Color Picker)
-    bgColorPicker.addEventListener('input', (e) => {
-      document.documentElement.style.setProperty('--bg-color', e.target.value);
-    });
-
-    // 3. 폰트 변경 기능
-    fontSelect.addEventListener('change', (e) => {
-      document.documentElement.style.setProperty('--font-family', e.target.value);
-    });
-
-    // 4. 다크 모드 토글
-    themeToggleBtn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      if (currentTheme === 'dark') {
-        document.documentElement.removeAttribute('data-theme');
-        themeIcon.textContent = '🌙';
-        themeText.textContent = '다크';
-        bgColorPicker.value = '#f4f6f8';
-        document.documentElement.style.removeProperty('--bg-color');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        themeIcon.textContent = '☀️';
-        themeText.textContent = '라이트';
-        bgColorPicker.value = '#121212';
-        document.documentElement.style.removeProperty('--bg-color');
-      }
-    });
-
-    // 5. 폭죽 효과
-    function triggerFireworks() {
-      const duration = 2.5 * 1000;
-      const animationEnd = Date.now() + duration;
-
-      const interval = setInterval(function() {
-        const timeLeft = animationEnd - Date.now();
-        if (timeLeft <= 0) return clearInterval(interval);
-
-        const particleCount = 50 * (timeLeft / duration);
-        confetti({
-          particleCount: particleCount,
-          spread: 70,
-          origin: { x: 0.1, y: 0.8 },
-          colors: ['#ff4d4f', '#4a90e2', '#52c41a', '#faad14', '#722ed1']
-        });
-        confetti({
-          particleCount: particleCount,
-          spread: 70,
-          origin: { x: 0.9, y: 0.8 },
-          colors: ['#ff4d4f', '#4a90e2', '#52c41a', '#faad14', '#722ed1']
-        });
-      }, 250);
-    }
-
-    // 6. 모든 항목 완료 검사
-    function checkAllCompleted() {
-      const items = todoList.querySelectorAll('.todo-item');
-      if (items.length === 0) {
-        congratsMessage.style.display = 'none';
-        return;
-      }
-
-      const completedItems = todoList.querySelectorAll('.todo-item.completed');
-      if (items.length === completedItems.length) {
-        congratsMessage.style.display = 'block';
-        triggerFireworks();
-      } else {
-        congratsMessage.style.display = 'none';
-      }
-    }
-
-    // 7. HTML5 Drag and Drop 구현
-    todoList.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      const draggingItem = document.querySelector('.dragging');
-      if (!draggingItem) return;
-
-      const siblings = [...todoList.querySelectorAll('.todo-item:not(.dragging)')];
-      const nextSibling = siblings.find(sibling => {
-        return e.clientY <= sibling.getBoundingClientRect().top + sibling.offsetHeight / 2;
-      });
-
-      todoList.insertBefore(draggingItem, nextSibling);
-    });
-
-    // 8. 할 일 추가
-    function addTodo() {
-      const text = todoInput.value.trim();
-      if (text === '') {
-        alert('할 일을 입력해 주세요!');
-        return;
-      }
-
-      const li = document.createElement('li');
-      li.className = 'todo-item';
-      li.draggable = true;
-
-      li.addEventListener('dragstart', () => {
-        li.classList.add('dragging');
-      });
-
-      li.addEventListener('dragend', () => {
-        li.classList.remove('dragging');
-      });
-
-      const dragHandle = document.createElement('span');
-      dragHandle.className = 'drag-handle';
-      dragHandle.innerHTML = '⋮⋮';
-      dragHandle.title = '드래그하여 순서 변경';
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.addEventListener('change', function () {
-        li.classList.toggle('completed', checkbox.checked);
-        checkAllCompleted();
-      });
-
-      const span = document.createElement('span');
-      span.className = 'todo-text';
-      span.textContent = text;
-
-      const orderBtns = document.createElement('div');
-      orderBtns.className = 'order-btns';
-
-      const upBtn = document.createElement('button');
-      upBtn.className = 'arrow-btn';
-      upBtn.innerHTML = '▲';
-      upBtn.title = '위로 이동';
-      upBtn.addEventListener('click', () => {
-        const prevLi = li.previousElementSibling;
-        if (prevLi) {
-          todoList.insertBefore(li, prevLi);
-        }
-      });
-
-      const downBtn = document.createElement('button');
-      downBtn.className = 'arrow-btn';
-      downBtn.innerHTML = '▼';
-      downBtn.title = '아래로 이동';
-      downBtn.addEventListener('click', () => {
-        const nextLi = li.nextElementSibling;
-        if (nextLi) {
-          todoList.insertBefore(nextLi, li);
-        }
-      });
-
-      orderBtns.appendChild(upBtn);
-      orderBtns.appendChild(downBtn);
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'delete-btn';
-      deleteBtn.innerHTML = '🗑️';
-      deleteBtn.title = '삭제';
-      deleteBtn.addEventListener('click', function () {
-        li.remove();
-        checkAllCompleted();
-      });
-
-      li.appendChild(dragHandle);
-      li.appendChild(checkbox);
-      li.appendChild(span);
-      li.appendChild(orderBtns);
-      li.appendChild(deleteBtn);
-
-      todoList.appendChild(li);
-
-      todoInput.value = '';
-      todoInput.focus();
-
-      checkAllCompleted();
-    }
-
-    addBtn.addEventListener('click', addTodo);
-    todoInput.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-        addTodo();
-      }
-    });
-  </script>
-
-</body>
-</html>
+**앞으로 또 구현하고 싶은 기능이나 연출이 생기면 언제든 말씀해 주세요. 나만의 완벽한 앱으로 만들어 드릴게요! 😊**
